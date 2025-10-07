@@ -1,1 +1,44 @@
 @import "tailwindcss";
+
+/* Print styles: Hide controls and remove borders/shadows */
+@media print {
+  .print\\:hidden {
+    display: none !important;
+  }
+  body {
+    background-color: white !important;
+    margin: 0;
+    padding: 0;
+  }
+  #invoice-document {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0;
+    max-width: none !important;
+    width: 100%;
+  }
+  .input-field {
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+  }
+  .input-field:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* General input styling for editing fields */
+.input-field {
+  padding: 0.25rem; /
+  border-radius: 0.375rem; 
+  border: 1px solid #e5e7eb; 
+  transition: all 150ms ease-in-out; 
+}
+.input-field:focus {
+  /* focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 */
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+  border-color: #6366f1;
+  outline: none;
+}
