@@ -37,7 +37,6 @@
   transition: all 150ms ease-in-out; 
 }
 .input-field:focus {
-  /* focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 */
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
   border-color: #6366f1;
   outline: none;

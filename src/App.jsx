@@ -51,8 +51,38 @@ const initialInvoiceData = {
   taxAmount: 0,
   total: 0,
 };
+
 function App() {
   const [invoice, setInvoice] = useState(initialInvoiceData);
+  const safeParse = (val) => parseFloat(val) || 0;
+  const calculateTotals = () => {
+    // **Change 3: safeParse is used during calculation to convert string values to numbers.**
+    // Calculate the sum of all line items, safely parsing strings to numbers
+    const newSubtotal = invoice.items.reduce(
+      (sum, item) => sum + safeParse(item.quantity) * safeParse(item.unitPrice),
+      0
+    );
+
+    // Safely parse the tax rate
+    const taxRateValue = safeParse(invoice.taxRate);
+
+    // Calculate tax based on the subtotal and tax rate
+    const newTaxAmount = newSubtotal * (taxRateValue / 100);
+
+    // Calculate the grand total
+    const newTotal = newSubtotal + newTaxAmount;
+
+    // Update the state with the new totals
+    setInvoice((prev) => ({
+      ...prev,
+      subtotal: newSubtotal,
+      taxAmount: newTaxAmount,
+      total: newTotal,
+    }));
+  };
+  useEffect(() => {
+    calculateTotals();
+  }, [invoice.items, invoice.taxRate]);
   //  Action Handlers (Add/Delete)
   const addItem = () => {
     setInvoice((prev) => ({
@@ -193,7 +223,7 @@ function App() {
           <input
             type="number"
             min="0"
-            step="0.01"
+            step="5"
             className="input-field w-24 text-right"
             value={item.unitPrice}
             onChange={(e) =>
@@ -352,6 +382,79 @@ function App() {
             </tbody>
           </table>
         </section>
+
+        {/* Totals & Notes */}
+        <footer className="grid md:grid-cols-3 gap-8 pt-6">
+          <div className="md:col-span-2">
+            <h4 className="font-semibold text-gray-700 mb-2">
+              Payment Terms & Notes
+            </h4>
+            <textarea
+              className="input-field w-full h-32 text-sm resize-none"
+              placeholder="e.g., Payment is due within 7 days. Thank you for your business!"
+              defaultValue="Payment is due within 7 days. A late fee of 1.5% per month will apply to overdue balances. Thank you for your business!"
+            />
+          </div>
+
+          <div className="md:col-span-1 p-6 bg-indigo-50 rounded-xl shadow-inner">
+            <div className="space-y-3">
+              {/* Subtotal */}
+              <div className="flex justify-between items-center text-gray-700">
+                <span className="font-medium">Subtotal</span>
+                <span className="font-medium">
+                  {formatCurrency(
+                    invoice.subtotal,
+                    invoice.invoiceDetails.currency
+                  )}
+                </span>
+              </div>
+
+              {/* Tax Rate Input */}
+              <div className="flex justify-between items-center text-gray-700">
+                <label htmlFor="tax-rate" className="font-medium">
+                  Tax Rate (%)
+                </label>
+                <div className="flex items-center">
+                  <input
+                    id="tax-rate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="input-field w-16 text-right font-medium mr-1"
+                    // Display the string value from state
+                    value={invoice.taxRate}
+                    onChange={(e) =>
+                      handleDetailChange("taxRate", null, e.target.value)
+                    }
+                  />
+                  <span className="print:hidden">%</span>
+                </div>
+              </div>
+
+              {/* Tax Amount */}
+              <div className="flex justify-between items-center text-gray-700 border-b pb-3 border-indigo-200">
+                <span className="font-medium">Tax Amount</span>
+                <span className="font-medium">
+                  {formatCurrency(
+                    invoice.taxAmount,
+                    invoice.invoiceDetails.currency
+                  )}
+                </span>
+              </div>
+
+              {/* Total Amount */}
+              <div className="flex justify-between items-center text-2xl font-bold text-indigo-700 pt-3">
+                <span>TOTAL DUE</span>
+                <span>
+                  {formatCurrency(
+                    invoice.total,
+                    invoice.invoiceDetails.currency
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );
