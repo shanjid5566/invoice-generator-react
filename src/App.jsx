@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Printer, DollarSign } from "lucide-react";
 
+const formatCurrency = (amount, currency = "USD") => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 2,
+  }).format(amount);
+};
+
 const initialInvoiceData = {
   sender: {
     name: "Your Company Name",
@@ -55,7 +63,17 @@ function App() {
       ],
     }));
   };
-
+  // delete items
+  const deleteItem = (id) => {
+    if (invoice.items.length === 1) {
+      console.log("Cannot delete the last item.");
+      return;
+    }
+    setInvoice((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => item.id !== id),
+    }));
+  };
   // Print full document
 
   const handlePrint = () => window.print();
@@ -122,6 +140,85 @@ function App() {
       />
     </div>
   );
+
+  // Handler for line item inputs
+  const handleItemChange = (id, field, value) => {
+    console.log(value);
+    setInvoice((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => {
+        if (item.id === id) {
+          // Update the specific field (quantity or unitPrice are parsed to number)
+          return {
+            ...item,
+            [field]: field === "description" ? value : parseFloat(value) || 0,
+          };
+        }
+        return item;
+      }),
+    }));
+  };
+
+  // Component for line item row
+  const LineItemRow = ({ item }) => {
+    const amount = item.quantity * item.unitPrice;
+    const isLastItem =
+      invoice.items.length === 1 && invoice.items[0].id === item.id;
+
+    return (
+      <tr className="border-b border-gray-100 hover:bg-indigo-50 transition duration-150">
+        <td className="px-3 py-3 w-1/2">
+          <input
+            type="text"
+            className="input-field font-medium w-full"
+            placeholder="Item description or service"
+            value={item.description}
+            onChange={(e) =>
+              handleItemChange(item.id, "description", e.target.value)
+            }
+          />
+        </td>
+        <td className="px-3 py-3 text-center">
+          <input
+            type="number"
+            min="0"
+            className="input-field w-20 text-center"
+            value={item.quantity}
+            onChange={(e) =>
+              handleItemChange(item.id, "quantity", e.target.value)
+            }
+          />
+        </td>
+        <td className="px-3 py-3 text-right">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className="input-field w-24 text-right"
+            value={item.unitPrice}
+            onChange={(e) =>
+              handleItemChange(item.id, "unitPrice", e.target.value)
+            }
+          />
+        </td>
+        <td className="px-3 py-3 font-semibold text-right text-gray-800 w-24 print:pr-6">
+          {formatCurrency(amount, invoice.invoiceDetails.currency)}
+        </td>
+        <td className="px-3 py-3 text-right w-12 print:hidden">
+          <button
+            onClick={() => deleteItem(item.id)}
+            className={`text-red-500 hover:text-red-700 p-2 rounded-full transition duration-150 ${
+              isLastItem ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            title="Remove Item"
+            disabled={isLastItem}
+          >
+            <Trash2 size={16} />
+          </button>
+        </td>
+      </tr>
+    );
+  };
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-4 sm:p-8">
       {/* Control Panel (Hidden when printing) */}
@@ -150,7 +247,7 @@ function App() {
         className="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-100"
       >
         {/* Invoice header */}
-        <header className="flex flex-col sm:flex-row justify-between items-start mb-10 border-b pb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start mb-10 border-b pb-6">
           {/* left side */}
           <div className="mb-6 sm:mb-0">
             <h1 className="text-4xl font-black text-indigo-700 tracking-tighter">
@@ -220,7 +317,7 @@ function App() {
               </select>
             </div>
           </div>
-        </header>
+        </div>
 
         {/* Company & Client Info */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -235,6 +332,26 @@ function App() {
             section="recipient"
           />
         </div>
+
+        {/* Line Items Table */}
+        <section className="mb-8 overflow-x-auto">
+          <table className="min-w-full bg-white border-collapse rounded-xl overflow-hidden shadow-lg">
+            <thead className="bg-indigo-600 text-white">
+              <tr>
+                <th className="text-left px-3 py-3 w-1/2">Description</th>
+                <th className="text-center px-3 py-3">Qty</th>
+                <th className="text-right px-3 py-3">Unit Price</th>
+                <th className="text-right px-3 py-3 w-24 print:pr-6">Amount</th>
+                <th className="px-3 py-3 w-12 print:hidden"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items.map((item) => (
+                <LineItemRow key={item.id} item={item} />
+              ))}
+            </tbody>
+          </table>
+        </section>
       </div>
     </div>
   );
