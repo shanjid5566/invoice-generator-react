@@ -9,261 +9,145 @@ const formatCurrency = (amount, currency = "USD") => {
   }).format(amount);
 };
 
-const initialInvoiceData = {
-  sender: {
-    name: "Your Company Name",
-    address: "123 Business Road",
-    city: "Anytown, TX 77001",
-    email: "billing@yourcompany.com",
-    phone: "(555) 123-4567",
-  },
-  recipient: {
-    name: "Client Name Inc.",
-    address: "456 Client Street",
-    city: "Client City, CA 90210",
-    email: "accounts@clientname.com",
-    phone: "(555) 987-6543",
-  },
-  invoiceDetails: {
-    number: "INV-2025-0001",
-    date: new Date().toISOString().split("T")[0],
-    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
-    currency: "USD",
-  },
-  items: [
-    {
-      id: crypto.randomUUID(),
-      description: "Phase 1: Project Scoping & Planning",
-      quantity: 1,
-      unitPrice: 1200.0,
-    },
-    {
-      id: crypto.randomUUID(),
-      description: "Phase 2: UI/UX Design & Prototyping",
-      quantity: 20,
-      unitPrice: 75.0,
-    },
-  ],
-  taxRate: 8.25,
-  subtotal: 0,
-  taxAmount: 0,
-  total: 0,
-};
-
 function App() {
-  const [invoice, setInvoice] = useState(initialInvoiceData);
-  const safeParse = (val) => parseFloat(val) || 0;
-  const calculateTotals = () => {
-    // **Change 3: safeParse is used during calculation to convert string values to numbers.**
-    // Calculate the sum of all line items, safely parsing strings to numbers
-    const newSubtotal = invoice.items.reduce(
-      (sum, item) => sum + safeParse(item.quantity) * safeParse(item.unitPrice),
-      0
-    );
+  const [invoice, setInvoice] = useState({
+    sender: {
+      name: "Your Company Name",
+      address: "123 Business Road",
+      city: "Anytown, TX 77001",
+      email: "billing@yourcompany.com",
+      phone: "(555) 123-4567",
+    },
+    recipient: {
+      name: "Client Name Inc.",
+      address: "456 Client Street",
+      city: "Client City, CA 90210",
+      email: "accounts@clientname.com",
+      phone: "(555) 987-6543",
+    },
+    invoiceDetails: {
+      number: "INV-2025-0001",
+      date: new Date().toISOString().split("T")[0],
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+      currency: "BDT",
+    },
+    items: [
+      {
+        id: "1",
+        description: "Phase 1: Project Scoping & Planning",
+        quantity: "1",
+        unitPrice: "1200",
+      },
+      {
+        id: "2",
+        description: "Phase 2: UI/UX Design & Prototyping",
+        quantity: "20",
+        unitPrice: "75",
+      },
+    ],
+    taxRate: "8.25",
+    notes: "Payment is due within 7 days. A late fee of 1.5% per month will apply to overdue balances. Thank you for your business!",
+  });
 
-    // Safely parse the tax rate
-    const taxRateValue = safeParse(invoice.taxRate);
+  const [totals, setTotals] = useState({
+    subtotal: 0,
+    taxAmount: 0,
+    total: 0,
+  });
 
-    // Calculate tax based on the subtotal and tax rate
-    const newTaxAmount = newSubtotal * (taxRateValue / 100);
-
-    // Calculate the grand total
-    const newTotal = newSubtotal + newTaxAmount;
-
-    // Update the state with the new totals
-    setInvoice((prev) => ({
-      ...prev,
-      subtotal: newSubtotal,
-      taxAmount: newTaxAmount,
-      total: newTotal,
-    }));
-  };
   useEffect(() => {
-    calculateTotals();
+    const subtotal = invoice.items.reduce((sum, item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unitPrice) || 0;
+      return sum + (qty * price);
+    }, 0);
+
+    const taxRate = parseFloat(invoice.taxRate) || 0;
+    const taxAmount = subtotal * (taxRate / 100);
+    const total = subtotal + taxAmount;
+
+    setTotals({ subtotal, taxAmount, total });
   }, [invoice.items, invoice.taxRate]);
-  //  Action Handlers (Add/Delete)
+
   const addItem = () => {
-    setInvoice((prev) => ({
+    const newId = Date.now().toString();
+    setInvoice(prev => ({
       ...prev,
-      items: [
-        ...prev.items,
-        { id: crypto.randomUUID(), description: "", quantity: 1, unitPrice: 0 },
-      ],
+      items: [...prev.items, {
+        id: newId,
+        description: "",
+        quantity: "1",
+        unitPrice: "0",
+      }],
     }));
   };
-  // delete items
+
   const deleteItem = (id) => {
-    if (invoice.items.length === 1) {
-      console.log("Cannot delete the last item.");
-      return;
-    }
-    setInvoice((prev) => ({
+    if (invoice.items.length === 1) return;
+    setInvoice(prev => ({
       ...prev,
-      items: prev.items.filter((item) => item.id !== id),
+      items: prev.items.filter(item => item.id !== id),
     }));
   };
-  // Print full document
+
+  const updateItem = (id, field, value) => {
+    setInvoice(prev => ({
+      ...prev,
+      items: prev.items.map(item => 
+        item.id === id ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const updateDetail = (section, field, value) => {
+    if (section === "taxRate" || section === "notes") {
+      setInvoice(prev => ({ ...prev, [section]: value }));
+    } else {
+      setInvoice(prev => ({
+        ...prev,
+        [section]: { ...prev[section], [field]: value },
+      }));
+    }
+  };
 
   const handlePrint = () => window.print();
 
-  // Invoice number handeler
-  const handleDetailChange = (section, field, value) => {
-    if (section === "taxRate") {
-      setInvoice((prev) => ({
-        ...prev,
-        taxRate: parseFloat(value) || 0,
-      }));
-      return;
-    }
-
-    setInvoice((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value,
-      },
-    }));
-  };
-
-  // Component for editing address blocks
-  const AddressBlock = ({ title, data, section }) => (
-    <div className="flex flex-col space-y-1 p-4 bg-white rounded-xl shadow-lg h-full">
-      <h3 className="font-extrabold text-lg text-indigo-700 border-b-2 border-indigo-100 pb-1 mb-2">
-        {title}
-      </h3>
-      <input
-        type="text"
-        className="input-field font-semibold text-gray-800 text-xl"
-        placeholder={`${title} Name`}
-        value={data.name}
-        onChange={(e) => handleDetailChange(section, "name", e.target.value)}
-      />
-      <input
-        type="text"
-        className="input-field text-gray-600"
-        placeholder="Address"
-        value={data.address}
-        onChange={(e) => handleDetailChange(section, "address", e.target.value)}
-      />
-      <input
-        type="text"
-        className="input-field text-gray-600"
-        placeholder="City, ST Zip"
-        value={data.city}
-        onChange={(e) => handleDetailChange(section, "city", e.target.value)}
-      />
-      <input
-        type="email"
-        className="input-field text-indigo-500"
-        placeholder="Email"
-        value={data.email}
-        onChange={(e) => handleDetailChange(section, "email", e.target.value)}
-      />
-      <input
-        type="tel"
-        className="input-field text-gray-500"
-        placeholder="Phone"
-        value={data.phone}
-        onChange={(e) => handleDetailChange(section, "phone", e.target.value)}
-      />
-    </div>
-  );
-
-  // Handler for line item inputs
-  const handleItemChange = (id, field, value) => {
-    console.log(value);
-    setInvoice((prev) => ({
-      ...prev,
-      items: prev.items.map((item) => {
-        if (item.id === id) {
-          // Update the specific field (quantity or unitPrice are parsed to number)
-          return {
-            ...item,
-            [field]: field === "description" ? value : parseFloat(value) || 0,
-          };
-        }
-        return item;
-      }),
-    }));
-  };
-
-  // Component for line item row
-  const LineItemRow = ({ item }) => {
-    const amount = item.quantity * item.unitPrice;
-    const isLastItem =
-      invoice.items.length === 1 && invoice.items[0].id === item.id;
-
-    return (
-      <tr className="border-b border-gray-100 hover:bg-indigo-50 transition duration-150">
-        <td className="px-3 py-3 w-1/2">
-          <input
-            type="text"
-            className="input-field font-medium w-full"
-            placeholder="Item description or service"
-            value={item.description}
-            onChange={(e) =>
-              handleItemChange(item.id, "description", e.target.value)
-            }
-          />
-        </td>
-        <td className="px-3 py-3 text-center">
-          <input
-            type="number"
-            min="0"
-            className="input-field w-20 text-center"
-            value={item.quantity}
-            onChange={(e) =>
-              handleItemChange(item.id, "quantity", e.target.value)
-            }
-          />
-        </td>
-        <td className="px-3 py-3 text-right">
-          <input
-            type="number"
-            min="0"
-            step="5"
-            className="input-field w-24 text-right"
-            value={item.unitPrice}
-            onChange={(e) =>
-              handleItemChange(item.id, "unitPrice", e.target.value)
-            }
-          />
-        </td>
-        <td className="px-3 py-3 font-semibold text-right text-gray-800 w-24 print:pr-6">
-          {formatCurrency(amount, invoice.invoiceDetails.currency)}
-        </td>
-        <td className="px-3 py-3 text-right w-12 print:hidden">
-          <button
-            onClick={() => deleteItem(item.id)}
-            className={`text-red-500 hover:text-red-700 p-2 rounded-full transition duration-150 ${
-              isLastItem ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            title="Remove Item"
-            disabled={isLastItem}
-          >
-            <Trash2 size={16} />
-          </button>
-        </td>
-      </tr>
-    );
-  };
   return (
-    <div className="min-h-screen bg-gray-50 font-sans p-4 sm:p-8">
-      {/* Control Panel (Hidden when printing) */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 font-sans p-4 sm:p-8">
+      <style>{`
+        @media print {
+          body { margin: 0; padding: 0; }
+          .print\\:hidden { display: none !important; }
+        }
+        .input-field {
+          border: 1px solid #e5e7eb;
+          padding: 0.5rem;
+          border-radius: 0.375rem;
+          transition: all 0.2s;
+          background: white;
+        }
+        .input-field:focus {
+          outline: none;
+          border-color: #4f46e5;
+          box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+      `}</style>
+
+      {/* Control Panel */}
       <div className="print:hidden flex justify-center sticky top-0 z-50 mb-8">
-        <div className="bg-indigo-600 p-3 rounded-xl shadow-2xl flex space-x-4">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-3 rounded-xl shadow-2xl flex space-x-4">
           <button
             onClick={addItem}
-            className="flex items-center space-x-2 px-4 py-2 bg-white text-indigo-600 font-bold rounded-lg hover:bg-indigo-50 transition shadow-md"
+            className="flex items-center space-x-2 px-4 py-2 bg-white text-indigo-600 font-bold rounded-lg hover:bg-indigo-50 transition"
           >
             <Plus size={18} />
             <span>Add Item</span>
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition shadow-md"
+            className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition"
           >
             <Printer size={18} />
             <span>Print / Save PDF</span>
@@ -271,190 +155,260 @@ function App() {
         </div>
       </div>
 
-      {/* Invoice container */}
-      <div
-        id="invoice-document"
-        className="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-100"
-      >
-        {/* Invoice header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start mb-10 border-b pb-6">
-          {/* left side */}
+      {/* Invoice Document */}
+      <div className="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-100">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start mb-10 border-b-2 border-indigo-100 pb-6">
           <div className="mb-6 sm:mb-0">
-            <h1 className="text-4xl font-black text-indigo-700 tracking-tighter">
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
               INVOICE
             </h1>
-            <div className="mt-2 flex items-center space-x-2">
+            <div className="mt-3 flex items-center space-x-2">
               <DollarSign size={20} className="text-indigo-500" />
               <input
                 type="text"
-                className="input-field font-mono text-gray-600"
-                placeholder="Invoice Number"
+                className="input-field font-mono text-gray-700 font-semibold"
                 value={invoice.invoiceDetails.number}
-                onChange={(e) =>
-                  handleDetailChange("invoiceDetails", "number", e.target.value)
-                }
+                onChange={(e) => updateDetail("invoiceDetails", "number", e.target.value)}
               />
             </div>
           </div>
 
-          {/* Right side */}
-
           <div className="text-right space-y-2 text-sm">
-            <div className="flex justify-end items-center">
-              <span className="w-24 text-gray-500 font-medium">
-                Invoice Date:
-              </span>
+            <div className="flex justify-end items-center space-x-2">
+              <span className="w-28 text-gray-600 font-semibold">Invoice Date:</span>
               <input
                 type="date"
-                className="input-field w-32"
+                className="input-field w-36"
                 value={invoice.invoiceDetails.date}
-                onChange={(e) =>
-                  handleDetailChange("invoiceDetails", "date", e.target.value)
-                }
+                onChange={(e) => updateDetail("invoiceDetails", "date", e.target.value)}
               />
             </div>
-            <div className="flex justify-end items-center">
-              <span className="w-24 text-gray-500 font-medium">Due Date:</span>
+            <div className="flex justify-end items-center space-x-2">
+              <span className="w-28 text-gray-600 font-semibold">Due Date:</span>
               <input
                 type="date"
-                className="input-field w-32 font-bold text-red-500"
+                className="input-field w-36 font-bold text-red-600"
                 value={invoice.invoiceDetails.dueDate}
-                onChange={(e) =>
-                  handleDetailChange(
-                    "invoiceDetails",
-                    "dueDate",
-                    e.target.value
-                  )
-                }
+                onChange={(e) => updateDetail("invoiceDetails", "dueDate", e.target.value)}
               />
             </div>
-            <div className="flex justify-end items-center">
-              <span className="w-24 text-gray-500 font-medium">Currency:</span>
+            <div className="flex justify-end items-center space-x-2">
+              <span className="w-28 text-gray-600 font-semibold">Currency:</span>
               <select
-                className="input-field w-32"
+                className="input-field w-36 font-semibold"
                 value={invoice.invoiceDetails.currency}
-                onChange={(e) =>
-                  handleDetailChange(
-                    "invoiceDetails",
-                    "currency",
-                    e.target.value
-                  )
-                }
+                onChange={(e) => updateDetail("invoiceDetails", "currency", e.target.value)}
               >
+                <option value="BDT">BDT (৳)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
                 <option value="GBP">GBP (£)</option>
+                
               </select>
             </div>
           </div>
         </div>
 
-        {/* Company & Client Info */}
+        {/* Address Blocks */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
-          <AddressBlock
-            title="Billed By"
-            data={invoice.sender}
-            section="sender"
-          />
-          <AddressBlock
-            title="Billed To"
-            data={invoice.recipient}
-            section="recipient"
-          />
+          {/* Billed By */}
+          <div className="flex flex-col space-y-1 p-4 bg-white rounded-xl shadow-lg">
+            <h3 className="font-extrabold text-lg text-indigo-700 border-b-2 border-indigo-100 pb-1 mb-2">
+              Billed By
+            </h3>
+            <input
+              type="text"
+              className="input-field font-semibold text-gray-800 text-xl"
+              value={invoice.sender.name}
+              onChange={(e) => updateDetail("sender", "name", e.target.value)}
+            />
+            <input
+              type="text"
+              className="input-field text-gray-600"
+              value={invoice.sender.address}
+              onChange={(e) => updateDetail("sender", "address", e.target.value)}
+            />
+            <input
+              type="text"
+              className="input-field text-gray-600"
+              value={invoice.sender.city}
+              onChange={(e) => updateDetail("sender", "city", e.target.value)}
+            />
+            <input
+              type="email"
+              className="input-field text-indigo-500"
+              value={invoice.sender.email}
+              onChange={(e) => updateDetail("sender", "email", e.target.value)}
+            />
+            <input
+              type="tel"
+              className="input-field text-gray-500"
+              value={invoice.sender.phone}
+              onChange={(e) => updateDetail("sender", "phone", e.target.value)}
+            />
+          </div>
+
+          {/* Billed To */}
+          <div className="flex flex-col space-y-1 p-4 bg-white rounded-xl shadow-lg">
+            <h3 className="font-extrabold text-lg text-indigo-700 border-b-2 border-indigo-100 pb-1 mb-2">
+              Billed To
+            </h3>
+            <input
+              type="text"
+              className="input-field font-semibold text-gray-800 text-xl"
+              value={invoice.recipient.name}
+              onChange={(e) => updateDetail("recipient", "name", e.target.value)}
+            />
+            <input
+              type="text"
+              className="input-field text-gray-600"
+              value={invoice.recipient.address}
+              onChange={(e) => updateDetail("recipient", "address", e.target.value)}
+            />
+            <input
+              type="text"
+              className="input-field text-gray-600"
+              value={invoice.recipient.city}
+              onChange={(e) => updateDetail("recipient", "city", e.target.value)}
+            />
+            <input
+              type="email"
+              className="input-field text-indigo-500"
+              value={invoice.recipient.email}
+              onChange={(e) => updateDetail("recipient", "email", e.target.value)}
+            />
+            <input
+              type="tel"
+              className="input-field text-gray-500"
+              value={invoice.recipient.phone}
+              onChange={(e) => updateDetail("recipient", "phone", e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Line Items Table */}
+        {/* Items Table */}
         <section className="mb-8 overflow-x-auto">
           <table className="min-w-full bg-white border-collapse rounded-xl overflow-hidden shadow-lg">
-            <thead className="bg-indigo-600 text-white">
+            <thead className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
               <tr>
-                <th className="text-left px-3 py-3 w-1/2">Description</th>
-                <th className="text-center px-3 py-3">Qty</th>
-                <th className="text-right px-3 py-3">Unit Price</th>
-                <th className="text-right px-3 py-3 w-24 print:pr-6">Amount</th>
-                <th className="px-3 py-3 w-12 print:hidden"></th>
+                <th className="text-left px-4 py-4 font-bold">Description</th>
+                <th className="text-center px-4 py-4 font-bold w-24">Qty</th>
+                <th className="text-right px-4 py-4 font-bold w-32">Unit Price</th>
+                <th className="text-right px-4 py-4 font-bold w-32">Amount</th>
+                <th className="px-4 py-4 w-16 print:hidden"></th>
               </tr>
             </thead>
             <tbody>
-              {invoice.items.map((item) => (
-                <LineItemRow key={item.id} item={item} />
-              ))}
+              {invoice.items.map((item) => {
+                const qty = parseFloat(item.quantity) || 0;
+                const price = parseFloat(item.unitPrice) || 0;
+                const amount = qty * price;
+                
+                return (
+                  <tr key={item.id} className="border-b border-gray-100 hover:bg-indigo-50">
+                    <td className="px-4 py-3">
+                      <input
+                        type="text"
+                        className="input-field font-medium w-full"
+                        placeholder="Item description"
+                        value={item.description}
+                        onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="text"
+                        className="input-field w-full text-center"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(item.id, "quantity", e.target.value)}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="text"
+                        className="input-field w-full text-right"
+                        value={item.unitPrice}
+                        onChange={(e) => updateItem(item.id, "unitPrice", e.target.value)}
+                      />
+                    </td>
+                    <td className="px-4 py-3 font-semibold text-right text-gray-800">
+                      {formatCurrency(amount, invoice.invoiceDetails.currency)}
+                    </td>
+                    <td className="px-4 py-3 text-center print:hidden">
+                      <button
+                        onClick={() => deleteItem(item.id)}
+                        disabled={invoice.items.length === 1}
+                        className={`text-red-500 hover:text-red-700 p-2 rounded transition ${
+                          invoice.items.length === 1 ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </section>
 
-        {/* Totals & Notes */}
-        <footer className="grid md:grid-cols-3 gap-8 pt-6">
+        {/* Footer */}
+        <footer className="grid md:grid-cols-3 gap-8 pt-6 border-t-2 border-gray-100">
           <div className="md:col-span-2">
-            <h4 className="font-semibold text-gray-700 mb-2">
+            <h4 className="font-bold text-gray-800 mb-3 text-lg">
               Payment Terms & Notes
             </h4>
             <textarea
               className="input-field w-full h-32 text-sm resize-none"
-              placeholder="e.g., Payment is due within 7 days. Thank you for your business!"
-              defaultValue="Payment is due within 7 days. A late fee of 1.5% per month will apply to overdue balances. Thank you for your business!"
+              value={invoice.notes}
+              onChange={(e) => updateDetail("notes", null, e.target.value)}
             />
           </div>
 
-          <div className="md:col-span-1 p-6 bg-indigo-50 rounded-xl shadow-inner">
-            <div className="space-y-3">
-              {/* Subtotal */}
+          <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow-lg">
+            <div className="space-y-4">
               <div className="flex justify-between items-center text-gray-700">
-                <span className="font-medium">Subtotal</span>
-                <span className="font-medium">
-                  {formatCurrency(
-                    invoice.subtotal,
-                    invoice.invoiceDetails.currency
-                  )}
+                <span className="font-semibold">Subtotal</span>
+                <span className="font-semibold text-lg">
+                  {formatCurrency(totals.subtotal, invoice.invoiceDetails.currency)}
                 </span>
               </div>
 
-              {/* Tax Rate Input */}
               <div className="flex justify-between items-center text-gray-700">
-                <label htmlFor="tax-rate" className="font-medium">
-                  Tax Rate (%)
-                </label>
+                <label className="font-semibold">Tax Rate</label>
                 <div className="flex items-center">
                   <input
-                    id="tax-rate"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="input-field w-16 text-right font-medium mr-1"
-                    // Display the string value from state
+                    type="text"
+                    className="input-field w-20 text-right font-semibold mr-1"
                     value={invoice.taxRate}
-                    onChange={(e) =>
-                      handleDetailChange("taxRate", null, e.target.value)
-                    }
+                    onChange={(e) => updateDetail("taxRate", null, e.target.value)}
                   />
-                  <span className="print:hidden">%</span>
+                  <span className="font-semibold">%</span>
                 </div>
               </div>
 
-              {/* Tax Amount */}
-              <div className="flex justify-between items-center text-gray-700 border-b pb-3 border-indigo-200">
-                <span className="font-medium">Tax Amount</span>
-                <span className="font-medium">
-                  {formatCurrency(
-                    invoice.taxAmount,
-                    invoice.invoiceDetails.currency
-                  )}
+              <div className="flex justify-between items-center text-gray-700 border-b-2 pb-3 border-indigo-200">
+                <span className="font-semibold">Tax Amount</span>
+                <span className="font-semibold text-lg">
+                  {formatCurrency(totals.taxAmount, invoice.invoiceDetails.currency)}
                 </span>
               </div>
 
-              {/* Total Amount */}
-              <div className="flex justify-between items-center text-2xl font-bold text-indigo-700 pt-3">
+              <div className="flex justify-between items-center text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 pt-3">
                 <span>TOTAL DUE</span>
                 <span>
-                  {formatCurrency(
-                    invoice.total,
-                    invoice.invoiceDetails.currency
-                  )}
+                  {formatCurrency(totals.total, invoice.invoiceDetails.currency)}
                 </span>
               </div>
             </div>
           </div>
         </footer>
+
+        <div className="mt-10 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+          <p>Thank you for your business!</p>
+        </div>
       </div>
     </div>
   );
