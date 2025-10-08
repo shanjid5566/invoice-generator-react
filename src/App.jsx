@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Printer, DollarSign } from "lucide-react";
+import axios from "axios";
 
 const formatCurrency = (amount, currency = "USD") => {
   return new Intl.NumberFormat("en-US", {
@@ -33,23 +34,13 @@ function App() {
         .split("T")[0],
       currency: "BDT",
     },
-    items: [
-      {
-        id: "1",
-        description: "Phase 1: Project Scoping & Planning",
-        quantity: "1",
-        unitPrice: "1200",
-      },
-      {
-        id: "2",
-        description: "Phase 2: UI/UX Design & Prototyping",
-        quantity: "20",
-        unitPrice: "75",
-      },
-    ],
+    items: [],
     taxRate: "8.25",
-    notes: "Payment is due within 7 days. A late fee of 1.5% per month will apply to overdue balances. Thank you for your business!",
+    notes:
+      "Payment is due within 7 days. A late fee of 1.5% per month will apply to overdue balances. Thank you for your business!",
   });
+  console.log(invoice)
+  console.log(invoice.items)
 
   const [totals, setTotals] = useState({
     subtotal: 0,
@@ -61,7 +52,7 @@ function App() {
     const subtotal = invoice.items.reduce((sum, item) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.unitPrice) || 0;
-      return sum + (qty * price);
+      return sum + qty * price;
     }, 0);
 
     const taxRate = parseFloat(invoice.taxRate) || 0;
@@ -73,29 +64,32 @@ function App() {
 
   const addItem = () => {
     const newId = Date.now().toString();
-    setInvoice(prev => ({
+    setInvoice((prev) => ({
       ...prev,
-      items: [...prev.items, {
-        id: newId,
-        description: "",
-        quantity: "1",
-        unitPrice: "0",
-      }],
+      items: [
+        ...prev.items,
+        {
+          id: newId,
+          description: "",
+          quantity: "1",
+          unitPrice: "0",
+        },
+      ],
     }));
   };
 
   const deleteItem = (id) => {
     if (invoice.items.length === 1) return;
-    setInvoice(prev => ({
+    setInvoice((prev) => ({
       ...prev,
-      items: prev.items.filter(item => item.id !== id),
+      items: prev.items.filter((item) => item.id !== id),
     }));
   };
 
   const updateItem = (id, field, value) => {
-    setInvoice(prev => ({
+    setInvoice((prev) => ({
       ...prev,
-      items: prev.items.map(item => 
+      items: prev.items.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
       ),
     }));
@@ -103,16 +97,20 @@ function App() {
 
   const updateDetail = (section, field, value) => {
     if (section === "taxRate" || section === "notes") {
-      setInvoice(prev => ({ ...prev, [section]: value }));
+      setInvoice((prev) => ({ ...prev, [section]: value }));
     } else {
-      setInvoice(prev => ({
+      setInvoice((prev) => ({
         ...prev,
         [section]: { ...prev[section], [field]: value },
       }));
     }
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+
+    axios.post('http://localhost:5000/api/invoices',invoice)
+    window.print()
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 font-sans p-4 sm:p-8">
@@ -157,7 +155,6 @@ function App() {
 
       {/* Invoice Document */}
       <div className="max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-2xl border border-gray-100">
-        
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start mb-10 border-b-2 border-indigo-100 pb-6">
           <div className="mb-6 sm:mb-0">
@@ -170,42 +167,55 @@ function App() {
                 type="text"
                 className="input-field font-mono text-gray-700 font-semibold"
                 value={invoice.invoiceDetails.number}
-                onChange={(e) => updateDetail("invoiceDetails", "number", e.target.value)}
+                onChange={(e) =>
+                  updateDetail("invoiceDetails", "number", e.target.value)
+                }
               />
             </div>
           </div>
 
           <div className="text-right space-y-2 text-sm">
             <div className="flex justify-end items-center space-x-2">
-              <span className="w-28 text-gray-600 font-semibold">Invoice Date:</span>
+              <span className="w-28 text-gray-600 font-semibold">
+                Invoice Date:
+              </span>
               <input
                 type="date"
                 className="input-field w-36"
                 value={invoice.invoiceDetails.date}
-                onChange={(e) => updateDetail("invoiceDetails", "date", e.target.value)}
+                onChange={(e) =>
+                  updateDetail("invoiceDetails", "date", e.target.value)
+                }
               />
             </div>
             <div className="flex justify-end items-center space-x-2">
-              <span className="w-28 text-gray-600 font-semibold">Due Date:</span>
+              <span className="w-28 text-gray-600 font-semibold">
+                Due Date:
+              </span>
               <input
                 type="date"
                 className="input-field w-36 font-bold text-red-600"
                 value={invoice.invoiceDetails.dueDate}
-                onChange={(e) => updateDetail("invoiceDetails", "dueDate", e.target.value)}
+                onChange={(e) =>
+                  updateDetail("invoiceDetails", "dueDate", e.target.value)
+                }
               />
             </div>
             <div className="flex justify-end items-center space-x-2">
-              <span className="w-28 text-gray-600 font-semibold">Currency:</span>
+              <span className="w-28 text-gray-600 font-semibold">
+                Currency:
+              </span>
               <select
                 className="input-field w-36 font-semibold"
                 value={invoice.invoiceDetails.currency}
-                onChange={(e) => updateDetail("invoiceDetails", "currency", e.target.value)}
+                onChange={(e) =>
+                  updateDetail("invoiceDetails", "currency", e.target.value)
+                }
               >
                 <option value="BDT">BDT (৳)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
                 <option value="GBP">GBP (£)</option>
-                
               </select>
             </div>
           </div>
@@ -228,7 +238,9 @@ function App() {
               type="text"
               className="input-field text-gray-600"
               value={invoice.sender.address}
-              onChange={(e) => updateDetail("sender", "address", e.target.value)}
+              onChange={(e) =>
+                updateDetail("sender", "address", e.target.value)
+              }
             />
             <input
               type="text"
@@ -259,31 +271,41 @@ function App() {
               type="text"
               className="input-field font-semibold text-gray-800 text-xl"
               value={invoice.recipient.name}
-              onChange={(e) => updateDetail("recipient", "name", e.target.value)}
+              onChange={(e) =>
+                updateDetail("recipient", "name", e.target.value)
+              }
             />
             <input
               type="text"
               className="input-field text-gray-600"
               value={invoice.recipient.address}
-              onChange={(e) => updateDetail("recipient", "address", e.target.value)}
+              onChange={(e) =>
+                updateDetail("recipient", "address", e.target.value)
+              }
             />
             <input
               type="text"
               className="input-field text-gray-600"
               value={invoice.recipient.city}
-              onChange={(e) => updateDetail("recipient", "city", e.target.value)}
+              onChange={(e) =>
+                updateDetail("recipient", "city", e.target.value)
+              }
             />
             <input
               type="email"
               className="input-field text-indigo-500"
               value={invoice.recipient.email}
-              onChange={(e) => updateDetail("recipient", "email", e.target.value)}
+              onChange={(e) =>
+                updateDetail("recipient", "email", e.target.value)
+              }
             />
             <input
               type="tel"
               className="input-field text-gray-500"
               value={invoice.recipient.phone}
-              onChange={(e) => updateDetail("recipient", "phone", e.target.value)}
+              onChange={(e) =>
+                updateDetail("recipient", "phone", e.target.value)
+              }
             />
           </div>
         </div>
@@ -295,7 +317,9 @@ function App() {
               <tr>
                 <th className="text-left px-4 py-4 font-bold">Description</th>
                 <th className="text-center px-4 py-4 font-bold w-24">Qty</th>
-                <th className="text-right px-4 py-4 font-bold w-32">Unit Price</th>
+                <th className="text-right px-4 py-4 font-bold w-32">
+                  Unit Price
+                </th>
                 <th className="text-right px-4 py-4 font-bold w-32">Amount</th>
                 <th className="px-4 py-4 w-16 print:hidden"></th>
               </tr>
@@ -305,16 +329,21 @@ function App() {
                 const qty = parseFloat(item.quantity) || 0;
                 const price = parseFloat(item.unitPrice) || 0;
                 const amount = qty * price;
-                
+
                 return (
-                  <tr key={item.id} className="border-b border-gray-100 hover:bg-indigo-50">
+                  <tr
+                    key={item.id}
+                    className="border-b border-gray-100 hover:bg-indigo-50"
+                  >
                     <td className="px-4 py-3">
                       <input
                         type="text"
                         className="input-field font-medium w-full"
                         placeholder="Item description"
                         value={item.description}
-                        onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(item.id, "description", e.target.value)
+                        }
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -322,7 +351,9 @@ function App() {
                         type="text"
                         className="input-field w-full text-center"
                         value={item.quantity}
-                        onChange={(e) => updateItem(item.id, "quantity", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(item.id, "quantity", e.target.value)
+                        }
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -330,7 +361,9 @@ function App() {
                         type="text"
                         className="input-field w-full text-right"
                         value={item.unitPrice}
-                        onChange={(e) => updateItem(item.id, "unitPrice", e.target.value)}
+                        onChange={(e) =>
+                          updateItem(item.id, "unitPrice", e.target.value)
+                        }
                       />
                     </td>
                     <td className="px-4 py-3 font-semibold text-right text-gray-800">
@@ -341,7 +374,9 @@ function App() {
                         onClick={() => deleteItem(item.id)}
                         disabled={invoice.items.length === 1}
                         className={`text-red-500 hover:text-red-700 p-2 rounded transition ${
-                          invoice.items.length === 1 ? "opacity-50 cursor-not-allowed" : ""
+                          invoice.items.length === 1
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
                         }`}
                       >
                         <Trash2 size={16} />
@@ -372,7 +407,10 @@ function App() {
               <div className="flex justify-between items-center text-gray-700">
                 <span className="font-semibold">Subtotal</span>
                 <span className="font-semibold text-lg">
-                  {formatCurrency(totals.subtotal, invoice.invoiceDetails.currency)}
+                  {formatCurrency(
+                    totals.subtotal,
+                    invoice.invoiceDetails.currency
+                  )}
                 </span>
               </div>
 
@@ -383,7 +421,9 @@ function App() {
                     type="text"
                     className="input-field w-20 text-right font-semibold mr-1"
                     value={invoice.taxRate}
-                    onChange={(e) => updateDetail("taxRate", null, e.target.value)}
+                    onChange={(e) =>
+                      updateDetail("taxRate", null, e.target.value)
+                    }
                   />
                   <span className="font-semibold">%</span>
                 </div>
@@ -392,14 +432,20 @@ function App() {
               <div className="flex justify-between items-center text-gray-700 border-b-2 pb-3 border-indigo-200">
                 <span className="font-semibold">Tax Amount</span>
                 <span className="font-semibold text-lg">
-                  {formatCurrency(totals.taxAmount, invoice.invoiceDetails.currency)}
+                  {formatCurrency(
+                    totals.taxAmount,
+                    invoice.invoiceDetails.currency
+                  )}
                 </span>
               </div>
 
               <div className="flex justify-between items-center text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 pt-3">
                 <span>TOTAL DUE</span>
                 <span>
-                  {formatCurrency(totals.total, invoice.invoiceDetails.currency)}
+                  {formatCurrency(
+                    totals.total,
+                    invoice.invoiceDetails.currency
+                  )}
                 </span>
               </div>
             </div>
