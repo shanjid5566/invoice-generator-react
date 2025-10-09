@@ -13,9 +13,9 @@ const formatCurrency = (amount, currency = "USD") => {
 function App() {
   const [invoice, setInvoice] = useState({
     sender: {
-      name: "Your Company Name",
-      address: "123 Business Road",
-      city: "Anytown, TX 77001",
+      name: "দ্বীনি বুকশপ", 
+      address: "কুড়িল,ঢাকা,বাংলাদেশ",
+      city: "ঢাকা",
       email: "billing@yourcompany.com",
       phone: "(555) 123-4567",
     },
