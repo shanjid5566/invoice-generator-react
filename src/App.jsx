@@ -108,7 +108,7 @@ function App() {
 
   const handlePrint = () => {
 
-    axios.post('http://localhost:5000/api/invoices',invoice)
+    axios.post('https://invoice-generator-react-server.vercel.app/api/invoices',invoice)
     window.print()
   };
 
